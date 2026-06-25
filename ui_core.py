@@ -48,13 +48,11 @@ def draw_scan_results(results, my_ip):
         color   = get_latency_color(lat)
         ttl_str = str(ttl) if ttl is not None else "-"
 
-        # Baris 1: status, ip, latency
         table.add_row(
             "● UP",
             ip,
             f"[{color}]{lat:.2f} ms[/{color}]"
         )
-        # Baris 2: hint di kolom IP dengan label
         table.add_row(
             "",
             f"[dim]Hint: {hint} ({ttl_str})[/dim]",
@@ -171,7 +169,6 @@ def draw_speedtest_results(results):
     avg_ul     = results.get("avg_upload",       0.0)
     ping_ms    = results.get("ping",             0.0)
 
-    # Tabel per-provider
     table = Table(
         title="[bold cyan]Hasil Uji Kecepatan Bandwidth[/bold cyan]",
         box=box.ROUNDED, header_style="bold magenta"
@@ -180,7 +177,6 @@ def draw_speedtest_results(results):
     table.add_column("Download",  justify="right", min_width=12)
     table.add_column("Upload",    justify="right", min_width=12)
 
-    # Baris per provider (download & upload dijodohkan by index)
     for i in range(max(len(dl_results), len(ul_results))):
         dl = dl_results[i] if i < len(dl_results) else {}
         ul = ul_results[i] if i < len(ul_results) else {}
@@ -188,14 +184,14 @@ def draw_speedtest_results(results):
         provider = dl.get("provider") or ul.get("provider") or "-"
 
         if dl.get("error"):
-            dl_str = f"[red]✖ Gagal[/red]"
+            dl_str = "[red]✖ Gagal[/red]"
         else:
             dl_mbps = dl.get("mbps", 0.0)
             dl_col  = "green" if dl_mbps >= 10 else ("yellow" if dl_mbps >= 5 else "red")
             dl_str  = f"[{dl_col}]{dl_mbps:.2f} Mbps[/{dl_col}]"
 
         if ul.get("error"):
-            ul_str = f"[red]✖ Gagal[/red]"
+            ul_str = "[red]✖ Gagal[/red]"
         else:
             ul_mbps = ul.get("mbps", 0.0)
             ul_col  = "green" if ul_mbps >= 5 else ("yellow" if ul_mbps >= 2 else "red")
@@ -203,7 +199,6 @@ def draw_speedtest_results(results):
 
         table.add_row(provider, dl_str, ul_str)
 
-    # Baris separator + rata-rata
     table.add_section()
     avg_dl_col = "green" if avg_dl >= 10 else ("yellow" if avg_dl >= 5 else "red")
     avg_ul_col = "green" if avg_ul >= 5  else ("yellow" if avg_ul >= 2 else "red")
@@ -216,7 +211,6 @@ def draw_speedtest_results(results):
     console.print("\n")
     console.print(Align.center(table))
 
-    # Panel ping
     ping_color = "green" if ping_ms <= 50 else ("yellow" if ping_ms <= 100 else "red")
     ping_panel = Panel(
         f" [bold]Ping ke Cloudflare:[/bold] [{ping_color}]{ping_ms:.2f} ms[/{ping_color}]",
@@ -228,15 +222,16 @@ def draw_speedtest_results(results):
 # ================= OSINT Display Functions =================
 
 def draw_osint_results(results):
-    domain = results.get("domain", "")
-    ips    = results.get("ips",    [])
-    geo    = results.get("geo",    {})
-    ssl_i  = results.get("ssl",   {})
-    dns_i  = results.get("dns",   {})
-    whois_i= results.get("whois", {})
-    http_i = results.get("http",  {})
-    risk_i = results.get("risk",  {})
-    trace  = results.get("trace",  "")
+    domain  = results.get("domain", "")
+    ips     = results.get("ips",    [])
+    geo     = results.get("geo",    {})
+    ssl_i   = results.get("ssl",   {})
+    dns_i   = results.get("dns",   {})
+    whois_i = results.get("whois", {})
+    http_i  = results.get("http",  {})
+    risk_i  = results.get("risk",  {})
+    trace   = results.get("trace",  "")
+    is_ip   = results.get("is_ip", False)
 
     console.print(f"\n[bold magenta]{'='*10} Hasil Analisis OSINT: {domain} {'='*10}[/bold magenta]")
 
@@ -275,8 +270,19 @@ def draw_osint_results(results):
     console.print(Panel(ssl_text, title="[bold cyan]🔒 SSL Certificate Inspector[/bold cyan]", border_style=ssl_border, expand=False))
 
     # --- Panel 4: DNS Records ---
-    if dns_i.get("error"):
-        dns_text = f"[red]{dns_i['error']}[/red]"
+    # Kalau mode IP, DNS sengaja dilewati — tampilkan info ringkas, bukan error merah
+    if is_ip:
+        console.print(Panel(
+            "[dim]DNS lookup dilewati — input adalah IP address.[/dim]",
+            title="[bold magenta]🔎 DNS Deep Lookup[/bold magenta]",
+            border_style="dim", expand=False
+        ))
+    elif dns_i.get("error"):
+        console.print(Panel(
+            f"[red]{dns_i['error']}[/red]",
+            title="[bold magenta]🔎 DNS Deep Lookup[/bold magenta]",
+            border_style="red", expand=False
+        ))
     else:
         dns_lines = []
         for rtype in ['A', 'AAAA', 'MX', 'NS', 'TXT']:
@@ -286,28 +292,45 @@ def draw_osint_results(results):
                 for r in recs:
                     display = r[:65] + "..." if len(r) > 65 else r
                     dns_lines.append(f"   [dim]➜[/dim] {display}")
-        spf_str   = "[green]Ada ✔[/green]"   if dns_i.get("spf")   else "[red]Tidak ada ✖[/red]"
-        dmarc_str = "[green]Ada ✔[/green]"   if dns_i.get("dmarc") else "[red]Tidak ada ✖[/red]"
+        spf_str   = "[green]Ada ✔[/green]"      if dns_i.get("spf")   else "[red]Tidak ada ✖[/red]"
+        dmarc_str = "[green]Ada ✔[/green]"      if dns_i.get("dmarc") else "[red]Tidak ada ✖[/red]"
         dns_lines.append(f"\n [bold]SPF  :[/bold] {spf_str}   [bold]DMARC:[/bold] {dmarc_str}")
         dns_text = "\n".join(dns_lines) if dns_lines else "[dim]Tidak ada record ditemukan.[/dim]"
-    console.print(Panel(dns_text, title="[bold magenta]🔎 DNS Deep Lookup[/bold magenta]", border_style="magenta", expand=False))
+        console.print(Panel(dns_text, title="[bold magenta]🔎 DNS Deep Lookup[/bold magenta]", border_style="magenta", expand=False))
 
     # --- Panel 5: WHOIS ---
+    # FIX: Tampilan berbeda untuk mode IP vs Domain
     if whois_i.get("error"):
-        whois_text = f"[red]{whois_i['error']}[/red]"
+        whois_text  = f"[red]{whois_i['error']}[/red]"
+        whois_title = "[bold yellow]📋 WHOIS[/bold yellow]"
+    elif is_ip:
+        # Mode IP — tampilkan org / cidr / rir / abuse
+        whois_text = (
+            f" [bold]Organisasi :[/bold] {whois_i.get('org',     'N/A')}\n"
+            f" [bold]Negara     :[/bold] {whois_i.get('country', 'N/A')}\n"
+            f" [bold]CIDR/Range :[/bold] {whois_i.get('cidr',    'N/A')}\n"
+            f" [bold]RIR        :[/bold] {whois_i.get('rir',     'N/A')}\n"
+            f" [bold]Abuse      :[/bold] {whois_i.get('abuse',   'N/A')}\n"
+            f" [bold]Sumber     :[/bold] [dim]{whois_i.get('source', 'N/A')}[/dim]"
+        )
+        whois_title = "[bold yellow]📋 WHOIS IP Info[/bold yellow]"
     else:
-        age = whois_i.get("domain_age")
-        age_str = f"{age} tahun" if age is not None else "N/A"
+        # Mode Domain — tampilkan registrar / owner / dates / age
+        age       = whois_i.get("domain_age")
+        age_str   = f"{age} tahun" if age is not None else "N/A"
         age_color = "green" if (age and age >= 5) else ("yellow" if (age and age >= 1) else "red")
         whois_text = (
-            f" [bold]Registrar  :[/bold] {whois_i.get('registrar', 'N/A')}\n"
-            f" [bold]Owner      :[/bold] {whois_i.get('owner', 'N/A')}\n"
-            f" [bold]Negara     :[/bold] {whois_i.get('country', 'N/A')}\n"
+            f" [bold]Registrar  :[/bold] {whois_i.get('registrar',  'N/A')}\n"
+            f" [bold]Owner      :[/bold] {whois_i.get('owner',      'N/A')}\n"
+            f" [bold]Negara     :[/bold] {whois_i.get('country',    'N/A')}\n"
             f" [bold]Registered :[/bold] {whois_i.get('registered', 'N/A')}\n"
-            f" [bold]Expires    :[/bold] {whois_i.get('expires', 'N/A')}\n"
-            f" [bold]Usia Domain:[/bold] [{age_color}]{age_str}[/{age_color}]"
+            f" [bold]Expires    :[/bold] {whois_i.get('expires',    'N/A')}\n"
+            f" [bold]Usia Domain:[/bold] [{age_color}]{age_str}[/{age_color}]\n"
+            f" [bold]Sumber     :[/bold] [dim]{whois_i.get('source', 'N/A')}[/dim]"
         )
-    console.print(Panel(whois_text, title="[bold yellow]📋 WHOIS Lookup[/bold yellow]", border_style="yellow", expand=False))
+        whois_title = "[bold yellow]📋 WHOIS Lookup[/bold yellow]"
+
+    console.print(Panel(whois_text, title=whois_title, border_style="yellow", expand=False))
 
     # --- Panel 6: HTTP Header Fingerprinting ---
     if http_i.get("error"):
@@ -370,10 +393,6 @@ def draw_risk_verdict(risk_i):
 
 
 def draw_export_prompt():
-    """
-    Tampilkan prompt export setelah hasil OSINT ditampilkan.
-    Mengembalikan format pilihan user: 'json', 'txt', atau None jika skip.
-    """
     console.print("\n[bold cyan]💾 Export Hasil OSINT?[/bold cyan]")
     console.print("   [bold green]1.[/bold green] Export ke JSON")
     console.print("   [bold yellow]2.[/bold yellow] Export ke TXT")

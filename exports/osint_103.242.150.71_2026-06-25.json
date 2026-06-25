@@ -1,0 +1,50 @@
+{
+  "target": "103.242.150.71",
+  "type": "IP",
+  "tanggal": "25 Jun 2026, 11:29 WIB",
+  "ip_addresses": [
+    "103.242.150.71"
+  ],
+  "geoip": {
+    "isp": "PT Omni Cloud Indonesia",
+    "as": "AS141109 PT Omni Cloud Indonesia",
+    "kota": "Batam",
+    "negara": "Indonesia"
+  },
+  "ssl": {
+    "issued_to": "N/A",
+    "issuer": "N/A",
+    "berlaku_dari": "N/A",
+    "berlaku_sampai": "N/A",
+    "sisa_hari": 0,
+    "status": "error",
+    "sans": []
+  },
+  "dns": {
+    "skipped": true
+  },
+  "whois": {
+    "org": "IDNIC-KREDIBA-ID",
+    "country": "ID",
+    "cidr": "103.242.150.0 - 103.242.151.255",
+    "rir": "APNIC",
+    "abuse": "abuse@kreasidigitalbangsa.id",
+    "source": "whois CLI"
+  },
+  "http_headers": {
+    "server": "-",
+    "powered_by": "-",
+    "cdn_waf": null,
+    "security_headers": {}
+  },
+  "risk_verdict": {
+    "risk_level": "LOW",
+    "risk_score": 5,
+    "issues": [
+      "SSL via IP tidak tersedia (wajar, bukan indikator risiko)",
+      "Tidak ada CDN/WAF terdeteksi"
+    ],
+    "positives": []
+  },
+  "traceroute": "traceroute to 103.242.150.71 (103.242.150.71), 15 hops max, 60 byte packets\n 1  192.168.1.1 (192.168.1.1)  4.271 ms  2.988 ms  2.918 ms\n 2  10.200.192.1 (10.200.192.1)  4.954 ms  4.538 ms  5.033 ms\n 3  ip-187-40.patas.id (103.169.187.40)  16.488 ms  18.824 ms  19.098 ms\n 4  ip-187-4.patas.id (103.169.187.4)  18.102 ms  18.364 ms  18.098 ms\n 5  peer.epix.id (202.159.50.115)  16.052 ms  20.265 ms  19.440 ms\n 6  * * *\n 7  * * *\n 8  * * *\n 9  * * *\n10  * * *\n11  * * *\n12  * * *\n13  * * *\n14  * * *\n15  * * *\n"
+}
